@@ -1,0 +1,132 @@
+<% if notice.present? %>
+<div class="alert alert-primary alert-dismissible fade show" id="notice" role="alert">
+  <%= notice %>
+  <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+    <span aria-hidden="true">&times;</span>
+  </button>
+</div>
+<% end %>
+
+<% if current_user.admin? %>
+  <div class="row">
+    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+      <%= link_to 'New Event', new_event_path, class: "btn btn-primary float-right" %>
+    </div>
+  </div>
+<% end %>
+
+<h1>Events</h1>
+
+<div class="row">
+  <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+    <% @events.each do |event| %>
+      <div class="card">
+        <div class="card-header">
+          <div class="row">
+            <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+              <%= event.name %>
+            </div>
+            <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
+              <%= event.start_time %>
+            </div>
+            <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
+              <%= event.end_time %>
+            </div>
+            <% if current_user.admin? %>
+              <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+                <%= link_to 'Edit', edit_event_path(event) %>
+              </div>
+              <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+                <%= link_to 'Destroy', event, method: :delete, data: { confirm: 'Are you sure?' } %>
+              </div>
+            <% end %>
+          </div>
+        </div>
+        <ul class="list-group list-group-flush">
+          <% event.meetings.each do |meeting| %>
+            <li class="list-group-item">
+              <div class="row">
+                <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+                  <%= meeting.name %>
+                </div>
+                <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
+                  <%= meeting.start_time %>
+                </div>
+                <div class="col-lg-3 col-md-3 col-sm-3 col-xs-3">
+                  <%= meeting.end_time %>
+                </div>
+                <% if current_user.attendee? %>
+                  <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+                    <% request = meeting.requests.select{|r| r.user_id == current_user.id}.first %>
+                    <% if request.blank? %>
+                      <a href="<%= enroll_meeting_path(meeting) %>" class="revoke">Enroll</a>
+                    <% else %>
+                      <% if request.approved? %>
+                        Entrolled (<a href="<%= enroll_meeting_path(meeting) %>" class="revoke">Leave</a>)
+                      <% elsif request.pending? %>
+                        <%= request.status.capitalize %> (<a href="<%= enroll_meeting_path(meeting) %>" class="revoke">Leave</a>)
+                      <% else %>
+                        <%= request.status.capitalize %>
+                      <% end %>
+                    <% end %>
+                  </div>
+                <% elsif current_user.host? %>
+                  <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+                    <div class="accordion" id="accordionExample">
+                      <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapse<%= meeting.id %>" aria-expanded="true" aria-controls="collapse<%= meeting.id %>">
+                        Attendees
+                      </button>
+                      <div id="collapse<%= meeting.id %>" class="row collapse" aria-labelledby="heading<%= meeting.id %>" data-parent="#accordionExample">
+                        <div class="card-body">
+                        <% meeting.users.each do |user| %>
+                            <%= user.email %><br />
+                        <% end %>
+                      </div>
+                      </div>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            </li>
+          <% end %>
+        </ul>
+      </div>
+      <h5></h5>
+  <% end %>
+  </div>
+</div>
+
+<% if current_user.admin? %>
+<h1>Requests</h1>
+<table class="table">
+  <thead>
+    <tr>
+      <th scope="col">Name</th>
+      <th scope="col">Event - Session</th>
+      <th scope="col">Status</th>
+      <th scope="col">Action</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @requests.each do |request| %>
+      <tr>
+        <td><%= request.user.try(:email) %></td>
+        <td><%= request.meeting.event.name %> - <%= request.meeting.name %></td>
+        <td><%= request.status.capitalize %></td>
+        <td>
+          <a href="/requests/<%= request.id %>"><%= request.pending? || request.rejected? ? "Approve" : "Reject" %></a>
+        </td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+<% end %>
+
+<script>
+  $(document).ready(function() {
+    setTimeout(function() {
+        $(".alert").alert('close');
+    }, 1000);
+  });
+</script>
